@@ -56,5 +56,27 @@ exports.register = async (req, res) => {
       res.status(500).json({ error: 'Server error' });
     }
   };
+
+// Check if email is verified
+exports.verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
+  if (!token) {
+    return res.status(400).json({ message: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { email } = decoded;
+
+    // Ensure email is updated to verified status
+    await User.verifyEmail(email);
+    res.status(200).json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.status(400).json({ message: 'Invalid or expired token' });
+  }
+};
+
   
  
