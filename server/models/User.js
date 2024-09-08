@@ -30,8 +30,11 @@ const User = {
 
   async verifyEmail(email) {
     try {
-      const query = 'UPDATE users SET is_verified = true WHERE email = $1;';
-      await pool.query(query, [email]);
+      const query = 'UPDATE users SET is_verified = true WHERE email = $1 RETURNING *;';
+      const result = await pool.query(query, [email]);
+      if (result.rowCount === 0) {
+        throw new Error('No user found with the given email');
+      }
     } catch (error) {
       console.error('Error verifying email:', error);
       throw new Error('Database error');
