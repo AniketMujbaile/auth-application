@@ -57,26 +57,51 @@ exports.register = async (req, res) => {
     }
   };
 
-// Check if email is verified
-exports.verifyEmail = async (req, res) => {
-  const { token } = req.query;
 
-  if (!token) {
-    return res.status(400).json({ message: 'No token provided' });
-  }
+const verifyEmail = async (req, res) => {
+  const { token } = req.query;
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { email } = decoded;
 
-    // Ensure email is updated to verified status
-    await User.verifyEmail(email);
-    res.status(200).json({ message: 'Email verified successfully' });
+    // Find the user and update their verification status
+    const client = await pool.connect();
+    const result = await client.query('UPDATE users SET is_verified = true WHERE email = $1 RETURNING id', [email]);
+    client.release();
+
+    if (result.rowCount === 0) {
+      return res.status(400).send('Invalid or expired token');
+    }
+
+    // Redirect to login page
+    res.redirect('/login?verification=success');
   } catch (error) {
-    console.error('Email verification error:', error);
-    res.status(400).json({ message: 'Invalid or expired token' });
+    console.error('Error during email verification:', error);
+    res.status(500).send('Internal server error');
   }
 };
+
+// // Check if email is verified
+// exports.verifyEmail = async (req, res) => {
+//   const { token } = req.query;
+
+//   if (!token) {
+//     return res.status(400).json({ message: 'No token provided' });
+//   }
+
+//   try {
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     const { email } = decoded;
+
+//     // Ensure email is updated to verified status
+//     await User.verifyEmail(email);
+//     res.status(200).json({ message: 'Email verified successfully' });
+//   } catch (error) {
+//     console.error('Email verification error:', error);
+//     res.status(400).json({ message: 'Invalid or expired token' });
+//   }
+// };
 
   
  
